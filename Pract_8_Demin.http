@@ -1,0 +1,6 @@
+@Pract_8_Demin_HostAddress = http://localhost:5281
+
+GET {{Pract_8_Demin_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
