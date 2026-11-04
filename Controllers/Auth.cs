@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Pract_8_Demin.Models;
+using Pract_8_Demin.Service;
 using System.IdentityModel.Tokens.Jwt;
 
 using System.Security.Claims;
@@ -18,13 +19,14 @@ namespace Pract_8_Demin.Controllers
         private readonly List<User> _users;
         private readonly IPasswordHasher<User> _hasher;
         private readonly IConfiguration _configuration;
+        static private readonly DeminDbContext _db = DBService.Instance.Context;
         public Auth(
             List<User> users,
             IPasswordHasher<User> hasher,
             IConfiguration configuration
         )
         {
-            _users = users;
+            _users = _db.Users.ToList();
             _hasher = hasher;
             _configuration = configuration;
         }
@@ -40,8 +42,14 @@ namespace Pract_8_Demin.Controllers
             var user = new User { Login = request.Login };
 
             user.PasswordHash = _hasher.HashPassword(user, request.Password);
-
+            if (user.Login == "admin123")
+                user.Role = "Admin";
+            else
+                user.Role = "User";
             _users.Add(user);
+            _db.Users.Add(user);
+            _db.SaveChanges();
+
             return Ok("Пользователь зарегистрирован");
         }
 
@@ -78,7 +86,7 @@ namespace Pract_8_Demin.Controllers
             var claims = new[]
             {
                 new Claim(ClaimTypes.Name, user.Login),
-                new Claim(ClaimTypes.Role,"Admin")
+                new Claim(ClaimTypes.Role, user.Role)
             };
 
             var key = new
