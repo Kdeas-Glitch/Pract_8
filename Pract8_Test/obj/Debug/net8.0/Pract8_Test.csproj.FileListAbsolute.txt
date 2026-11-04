@@ -1,0 +1,14 @@
+C:\Users\HardShop\Desktop\Projects\Pract8_Test\Pract8_Test\bin\Debug\net8.0\Pract8_Test.exe
+C:\Users\HardShop\Desktop\Projects\Pract8_Test\Pract8_Test\bin\Debug\net8.0\Pract8_Test.deps.json
+C:\Users\HardShop\Desktop\Projects\Pract8_Test\Pract8_Test\bin\Debug\net8.0\Pract8_Test.runtimeconfig.json
+C:\Users\HardShop\Desktop\Projects\Pract8_Test\Pract8_Test\bin\Debug\net8.0\Pract8_Test.dll
+C:\Users\HardShop\Desktop\Projects\Pract8_Test\Pract8_Test\bin\Debug\net8.0\Pract8_Test.pdb
+C:\Users\HardShop\Desktop\Projects\Pract8_Test\Pract8_Test\obj\Debug\net8.0\Pract8_Test.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\HardShop\Desktop\Projects\Pract8_Test\Pract8_Test\obj\Debug\net8.0\Pract8_Test.AssemblyInfoInputs.cache
+C:\Users\HardShop\Desktop\Projects\Pract8_Test\Pract8_Test\obj\Debug\net8.0\Pract8_Test.AssemblyInfo.cs
+C:\Users\HardShop\Desktop\Projects\Pract8_Test\Pract8_Test\obj\Debug\net8.0\Pract8_Test.csproj.CoreCompileInputs.cache
+C:\Users\HardShop\Desktop\Projects\Pract8_Test\Pract8_Test\obj\Debug\net8.0\Pract8_Test.dll
+C:\Users\HardShop\Desktop\Projects\Pract8_Test\Pract8_Test\obj\Debug\net8.0\refint\Pract8_Test.dll
+C:\Users\HardShop\Desktop\Projects\Pract8_Test\Pract8_Test\obj\Debug\net8.0\Pract8_Test.pdb
+C:\Users\HardShop\Desktop\Projects\Pract8_Test\Pract8_Test\obj\Debug\net8.0\Pract8_Test.genruntimeconfig.cache
+C:\Users\HardShop\Desktop\Projects\Pract8_Test\Pract8_Test\obj\Debug\net8.0\ref\Pract8_Test.dll
