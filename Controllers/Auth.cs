@@ -116,31 +116,18 @@ namespace Pract_8_Demin.Controllers
         }
 
         [HttpPost("cancel")]
-        public IActionResult Cancel(AuthRequest request)
+        public IActionResult Cancel(RefreshRequest request)
         {
-            byte[] tokenBytes = Encoding.UTF8.GetBytes(request.refr);
-            byte[] hash = SHA256.HashData(tokenBytes);
-
-            string req = Convert.ToHexString(hash);
-
-            var refresh = _refreshtokens.Find(u => u.TokenHash == req);
-            if (refresh == null)
-                return Unauthorized("Неверная пара логин/пароль");//доделать
 
 
-            var token = GenerateJwtToken(refresh.User);
+            RevokedToken r = new();
 
-            var refr = GenerateAccesToken(refresh.User);
+            var token = 
 
-            _db.RefreshTokens.Remove(refresh);
 
-            _db.SaveChanges();
+            _db.RevokedTokens.Add();
 
-            return Ok(new
-            {
-                access_token = token,
-                refresh_token = refr
-            });
+            return Ok();
 
         }
 
