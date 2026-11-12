@@ -5,8 +5,8 @@ using Microsoft.IdentityModel.Tokens;
 using Pract_8_Demin.Models;
 using Pract_8_Demin.Service;
 using System.IdentityModel.Tokens.Jwt;
-
 using System.Security.Claims;
+using System.Security.Cryptography;
 
 using System.Text;
 
@@ -17,6 +17,7 @@ namespace Pract_8_Demin.Controllers
     public class Auth : ControllerBase
     {
         private readonly List<User> _users;
+        private readonly List<RefreshToken> _refreshtokens;
         private readonly IPasswordHasher<User> _hasher;
         private readonly IConfiguration _configuration;
         static private readonly DeminDbContext _db = DBService.Instance.Context;
@@ -29,10 +30,12 @@ namespace Pract_8_Demin.Controllers
             _users = _db.Users.ToList();
             _hasher = hasher;
             _configuration = configuration;
+            _refreshtokens = _db.RefreshTokens.ToList();
         }
 
 
         public record AuthRequest(string Login, string Password);
+        public record RefreshRequest(string refr);
         [HttpPost("register")]
         public IActionResult Register(AuthRequest request)
         {
@@ -73,11 +76,100 @@ namespace Pract_8_Demin.Controllers
 
             var token = GenerateJwtToken(user);
 
+            var refr = GenerateAccesToken(user);
+
             return Ok(new
             {
-                access_token = token
+                access_token = token,
+                refresh_token = refr
             });
 
+        }
+        
+        [HttpPost("refresh")]
+        public IActionResult Refresh(RefreshRequest request)
+        {
+            byte[] tokenBytes = Encoding.UTF8.GetBytes(request.refr);
+            byte[] hash = SHA256.HashData(tokenBytes);
+
+            string req = Convert.ToHexString(hash);
+
+            var refresh = _refreshtokens.Find(u => u.TokenHash == req);
+            if (refresh == null)
+                return Unauthorized("Неверная пара логин/пароль");//доделать
+
+
+            var token = GenerateJwtToken(refresh.User);
+
+            var refr = GenerateAccesToken(refresh.User);
+
+            _db.RefreshTokens.Remove(refresh);
+
+            _db.SaveChanges();
+
+            return Ok(new
+            {
+                access_token = token,
+                refresh_token = refr
+            });
+
+        }
+
+        [HttpPost("cancel")]
+        public IActionResult Cancel(AuthRequest request)
+        {
+            byte[] tokenBytes = Encoding.UTF8.GetBytes(request.refr);
+            byte[] hash = SHA256.HashData(tokenBytes);
+
+            string req = Convert.ToHexString(hash);
+
+            var refresh = _refreshtokens.Find(u => u.TokenHash == req);
+            if (refresh == null)
+                return Unauthorized("Неверная пара логин/пароль");//доделать
+
+
+            var token = GenerateJwtToken(refresh.User);
+
+            var refr = GenerateAccesToken(refresh.User);
+
+            _db.RefreshTokens.Remove(refresh);
+
+            _db.SaveChanges();
+
+            return Ok(new
+            {
+                access_token = token,
+                refresh_token = refr
+            });
+
+        }
+
+
+
+
+        private string GenerateAccesToken(User user)
+        {
+            RefreshToken r = new();
+
+            r.Id = 0;
+            r.UserId = user.Id;
+
+            string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+            string q = RandomNumberGenerator.GetString(chars,20);
+
+            byte[] tokenBytes = Encoding.UTF8.GetBytes(q);
+            byte[] hash = SHA256.HashData(tokenBytes);
+
+            r.TokenHash = Convert.ToHexString(hash);
+
+
+            r.ExpiresAt = DateTime.UtcNow.AddDays(7);
+
+            _db.RefreshTokens.Add(r);
+            _db.SaveChanges();
+
+            return q;
         }
 
 
@@ -86,7 +178,8 @@ namespace Pract_8_Demin.Controllers
             var claims = new[]
             {
                 new Claim(ClaimTypes.Name, user.Login),
-                new Claim(ClaimTypes.Role, user.Role)
+                new Claim(ClaimTypes.Role, user.Role),
+                new Claim(JwtRegisteredClaimNames.Jti,Guid.NewGuid().ToString())
             };
 
             var key = new
@@ -103,10 +196,13 @@ namespace Pract_8_Demin.Controllers
 
                 claims: claims,
 
-                expires: DateTime.UtcNow.AddMinutes(30),
+                expires: DateTime.UtcNow.AddMinutes(1),
+
 
                 signingCredentials: credentials
             );
+
+            
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }

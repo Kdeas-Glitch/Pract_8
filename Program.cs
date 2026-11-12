@@ -3,10 +3,15 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 
 using Pract_8_Demin.Models;
+using Pract_8_Demin.Service;
 
+using System.Collections.Concurrent;
+using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+DeminDbContext _db = DBService.Instance.Context;
 
 // Add services to the container.
 
@@ -44,11 +49,32 @@ builder.Services
         ),
             ClockSkew = TimeSpan.Zero
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = context =>
+            {
+                // Получаем идентификатор проверенного JWT
+                var jti = context.Principal?
+                .FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+                if (string.IsNullOrEmpty(jti))
+                {
+                    context.Fail("В JWT отсутствует jti");
+                    return System.Threading.Tasks.Task.CompletedTask;
+                }
+                // Получаем общее хранилище через DI
+                var revokedTokens = _db.RevokedTokens.FirstOrDefault(i => i.Jti == jti);
+                // Если jti присутствует в списке, отклоняем JWT
+                if (revokedTokens != null)
+                {
+                    context.Fail("JWT отозван");
+                }
+                return System.Threading.Tasks.Task.CompletedTask;
+            }
+        };
     });
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
