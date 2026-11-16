@@ -91,14 +91,12 @@ namespace Pract_8_Demin.Controllers
         [HttpPost("refresh")]
         public IActionResult Refresh(RefreshRequest request)
         {
-            byte[] tokenBytes = Encoding.UTF8.GetBytes(request.refr);
-            byte[] hash = SHA256.HashData(tokenBytes);
-
-            string req = Convert.ToHexString(hash);
+            var tokenBytes = Convert.FromHexString(request.refr);
+            var h = Convert.ToHexString(SHA256.HashData(tokenBytes));
             lock (_lockObject)
             {
 
-                var refresh = _refreshtokens.Find(u => u.TokenHash == req);
+                var refresh = _refreshtokens.FirstOrDefault(u => u.TokenHash == h);
                 if (refresh == null)
                     return Unauthorized("Недействительный Токен");
 
@@ -184,22 +182,21 @@ namespace Pract_8_Demin.Controllers
 
         private string GenerateAccesToken(User user)
         {
-            byte[] randomBytes = RandomNumberGenerator.GetBytes(32);
-            string token = Convert.ToBase64String(randomBytes);
+            var randomBytes = RandomNumberGenerator.GetBytes(32);
 
-            byte[] hash = SHA256.HashData(randomBytes);
+            var token_h = SHA256.Create().ComputeHash(randomBytes);
 
             RefreshToken r = new();
             r.Id = 0;
             r.UserId = user.Id;
-            r.TokenHash = Convert.ToHexString(hash);
+            r.TokenHash = Convert.ToHexString(token_h);
             r.ExpiresAt = DateTime.UtcNow.AddDays(7);
             
 
             _db.RefreshTokens.Add(r);
             _db.SaveChanges();
 
-            return token;
+            return Convert.ToHexString(randomBytes);
         }
 
 
