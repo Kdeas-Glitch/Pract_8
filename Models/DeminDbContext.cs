@@ -24,8 +24,8 @@ public partial class DeminDbContext : DbContext
     public virtual DbSet<User> Users { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-                  => optionsBuilder.UseSqlServer("Server=sql.ects;Database=DeminDB;User Id=student_00;Password=student_00;TrustServerCertificate=True;");
-                //=> optionsBuilder.UseSqlServer("Server = localhost; Database = DeminDB; Trusted_Connection = True; User Id = student_04; Password = student_04;TrustServerCertificate = True; ");
+                //=> optionsBuilder.UseSqlServer("Server=sql.ects;Database=DeminDB;User Id=student_00;Password=student_00;TrustServerCertificate=True;");
+                => optionsBuilder.UseSqlServer("Server = localhost; Database = DeminDB; Trusted_Connection = True; User Id = student_04; Password = student_04;TrustServerCertificate = True; ");
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

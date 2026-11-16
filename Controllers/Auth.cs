@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -16,6 +17,7 @@ namespace Pract_8_Demin.Controllers
     [Route("api/v1/auth")]
     public class Auth : ControllerBase
     {
+        private static readonly object _lockObject = new object();
         private readonly List<User> _users;
         private readonly List<RefreshToken> _refreshtokens;
         private readonly IPasswordHasher<User> _hasher;
@@ -93,39 +95,85 @@ namespace Pract_8_Demin.Controllers
             byte[] hash = SHA256.HashData(tokenBytes);
 
             string req = Convert.ToHexString(hash);
-
-            var refresh = _refreshtokens.Find(u => u.TokenHash == req);
-            if (refresh == null)
-                return Unauthorized("Неверная пара логин/пароль");//доделать
-
-
-            var token = GenerateJwtToken(refresh.User);
-
-            var refr = GenerateAccesToken(refresh.User);
-
-            _db.RefreshTokens.Remove(refresh);
-
-            _db.SaveChanges();
-
-            return Ok(new
+            lock (_lockObject)
             {
-                access_token = token,
-                refresh_token = refr
-            });
+
+                var refresh = _refreshtokens.Find(u => u.TokenHash == req);
+                if (refresh == null)
+                    return Unauthorized("Недействительный Токен");
+
+
+                var token = GenerateJwtToken(refresh.User);
+
+                var refr = GenerateAccesToken(refresh.User);
+
+                _db.RefreshTokens.Remove(refresh);
+
+                _db.SaveChanges();
+
+                return Ok(new
+                {
+                    access_token = token,
+                    refresh_token = refr
+                });
+            }
 
         }
 
-        [HttpPost("cancel")]
+        [HttpPost("logout")]
+        [Authorize]
         public IActionResult Cancel(RefreshRequest request)
         {
+            foreach (var token in _db.RevokedTokens)
+            {
+                if(token.ExpiresAt < DateTime.UtcNow)
+                    _db.RevokedTokens.Remove(token);
+            }
+            _db.SaveChanges();
 
 
-            RevokedToken r = new();
+            byte[] tokenBytes = Encoding.UTF8.GetBytes(request.refr);
+            byte[] hash = SHA256.HashData(tokenBytes);
 
-            var token = 
+            string req = Convert.ToHexString(hash);
 
+            var refresh = _refreshtokens.Find(u => u.TokenHash == req);
 
-            _db.RevokedTokens.Add();
+            string? userId = User.FindFirstValue(ClaimTypes.Name);
+            
+            if (refresh == null)
+                return Unauthorized("Недействительный Токен");
+
+            if (userId == null)
+                return Unauthorized("Пользователь - проблема");
+
+            if (refresh.User.Login != userId)
+            {
+                return Forbid("Много хочешь");
+            }
+            _db.RefreshTokens.Remove(refresh);
+
+            string? jti = User.FindFirstValue(JwtRegisteredClaimNames.Jti);
+
+                DateTime d = DateTime.Now.AddSeconds(60);
+            try
+            {
+                d = Convert.ToDateTime(JwtRegisteredClaimNames.Exp);
+
+            }
+            catch (Exception ex)
+            {
+                d= DateTime.Now.AddSeconds(60);
+            }
+
+            RevokedToken rr = new RevokedToken();
+
+            rr.Jti = jti;
+            rr.ExpiresAt = d;
+
+            _db.RevokedTokens.Add(rr);
+
+            _db.SaveChanges();
 
             return Ok();
 
@@ -136,27 +184,22 @@ namespace Pract_8_Demin.Controllers
 
         private string GenerateAccesToken(User user)
         {
-            RefreshToken r = new();
+            byte[] randomBytes = RandomNumberGenerator.GetBytes(32);
+            string token = Convert.ToBase64String(randomBytes);
 
+            byte[] hash = SHA256.HashData(randomBytes);
+
+            RefreshToken r = new();
             r.Id = 0;
             r.UserId = user.Id;
-
-            string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-            string q = RandomNumberGenerator.GetString(chars,20);
-
-            byte[] tokenBytes = Encoding.UTF8.GetBytes(q);
-            byte[] hash = SHA256.HashData(tokenBytes);
-
             r.TokenHash = Convert.ToHexString(hash);
-
-
             r.ExpiresAt = DateTime.UtcNow.AddDays(7);
+            
 
             _db.RefreshTokens.Add(r);
             _db.SaveChanges();
 
-            return q;
+            return token;
         }
 
 
@@ -183,7 +226,7 @@ namespace Pract_8_Demin.Controllers
 
                 claims: claims,
 
-                expires: DateTime.UtcNow.AddMinutes(1),
+                expires: DateTime.UtcNow.AddSeconds(60),
 
 
                 signingCredentials: credentials

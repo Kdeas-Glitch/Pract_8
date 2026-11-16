@@ -17,6 +17,22 @@
   },
   {
     "ContainingType": "Pract_8_Demin.Controllers.Auth",
+    "Method": "Cancel",
+    "RelativePath": "api/v1/auth/logout",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Pract_8_Demin.Controllers.Auth\u002BRefreshRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Pract_8_Demin.Controllers.Auth",
     "Method": "Refresh",
     "RelativePath": "api/v1/auth/refresh",
     "HttpMethod": "POST",
