@@ -37,7 +37,7 @@ namespace Pract_8_Demin.Controllers
 
 
         public record AuthRequest(string Login, string Password);
-        public record RefreshRequest(string refr);
+        public record RefreshRequest(string refresh_token);
         [HttpPost("register")]
         public IActionResult Register(AuthRequest request)
         {
@@ -91,29 +91,36 @@ namespace Pract_8_Demin.Controllers
         [HttpPost("refresh")]
         public IActionResult Refresh(RefreshRequest request)
         {
-            var tokenBytes = Convert.FromHexString(request.refr);
-            var h = Convert.ToHexString(SHA256.HashData(tokenBytes));
-            lock (_lockObject)
+            try
             {
-
-                var refresh = _refreshtokens.FirstOrDefault(u => u.TokenHash == h);
-                if (refresh == null)
-                    return Unauthorized("Недействительный Токен");
-
-
-                var token = GenerateJwtToken(refresh.User);
-
-                var refr = GenerateAccesToken(refresh.User);
-
-                _db.RefreshTokens.Remove(refresh);
-
-                _db.SaveChanges();
-
-                return Ok(new
+                var tokenBytes = Convert.FromHexString(request.refresh_token);
+                var h = Convert.ToHexString(SHA256.HashData(tokenBytes));
+                lock (_lockObject)
                 {
-                    access_token = token,
-                    refresh_token = refr
-                });
+
+                    var refresh = _refreshtokens.FirstOrDefault(u => u.TokenHash == h);
+                    if (refresh == null)
+                        return Unauthorized("Недействительный Токен");
+
+
+                    var token = GenerateJwtToken(refresh.User);
+
+                    var refr = GenerateAccesToken(refresh.User);
+
+                    _db.RefreshTokens.Remove(refresh);
+
+                    _db.SaveChanges();
+
+                    return Ok(new
+                    {
+                        access_token = token,
+                        refresh_token = refr
+                    });
+                }
+            }
+            catch
+            {
+                return Unauthorized("Недействительный Токен");
             }
 
         }
@@ -127,15 +134,25 @@ namespace Pract_8_Demin.Controllers
                 if(token.ExpiresAt < DateTime.UtcNow)
                     _db.RevokedTokens.Remove(token);
             }
+            foreach (var token in _db.RefreshTokens)
+            {
+                if (token.ExpiresAt < DateTime.UtcNow)
+                    _db.RefreshTokens.Remove(token);
+            }
             _db.SaveChanges();
+            var keyBytes = Convert.FromHexString(request.refresh_token);
+            var tokenHash = Convert.ToHexString(SHA256.HashData(keyBytes));
+            var refresh = _refreshtokens.FirstOrDefault(t => t.TokenHash == tokenHash);
 
+            var user = User.Identity?.Name;
 
-            byte[] tokenBytes = Encoding.UTF8.GetBytes(request.refr);
-            byte[] hash = SHA256.HashData(tokenBytes);
+            //byte[] tokenBytes = Encoding.UTF8.GetBytes(request.refr);
 
-            string req = Convert.ToHexString(hash);
+            //byte[] hash = SHA256.HashData(tokenBytes);
 
-            var refresh = _refreshtokens.Find(u => u.TokenHash == req);
+            //string req = Convert.ToHexString(hash);
+
+            //var refresh = _refreshtokens.Find(u => u.TokenHash == req);
 
             string? userId = User.FindFirstValue(ClaimTypes.Name);
             
@@ -147,7 +164,7 @@ namespace Pract_8_Demin.Controllers
 
             if (refresh.User.Login != userId)
             {
-                return Forbid("Много хочешь");
+                return Forbid();
             }
             _db.RefreshTokens.Remove(refresh);
 
